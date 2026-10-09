@@ -11,6 +11,12 @@ set(LIB "CppUtils")
 #create interface lib
 add_library(${LIB} INTERFACE)
 
+set_target_properties(${LIB} PROPERTIES
+CXX_STANDARD 11
+CXX_STANDARD_REQUIRED ON
+CXX_EXTENSIONS OFF
+)
+
 #Export lib
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -61,9 +67,5 @@ install(DIRECTORY
 )
 
 
-
-
-
 #add subdirectories
-add_subdirectory(src)
 add_subdirectory(tests)
