@@ -9,14 +9,14 @@ LANGUAGES CXX)
 set(LIB "CppUtils")
 
 #create interface lib
-add_library(${CppUtils}
+add_library(${LIB} INTERFACE)
 
 #Export lib
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 #include directories
-target_include_directories(${LIB} PUBLIC
+target_include_directories(${LIB} INTERFACE
 "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
 "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
