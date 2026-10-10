@@ -7,3 +7,4 @@ CXX_EXTENSIONS OFF
 )
 
 target_link_libraries(EXE PRIVATE ${LIB})
+target_compile_definitions(EXE PRIVATE LOG_MESSAGES)
