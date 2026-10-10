@@ -28,7 +28,10 @@
 #include <limits>
 #include <stdexcept>
 #include <cctype>
+#include <utility>
 #include <type_traits>
+
+#include "Exceptions.hpp"
 
 namespace Utils
 {
@@ -71,45 +74,9 @@ namespace Utils
 
 			return str[0] == '-' ? true : false;
 		}
-		inline static std::string RemoveStringSpaces(const std::string& str, SpaceRemoveType removeType)
-		{
-			//TODO: continou working on that
-
-			if (str.empty())
-				return std::string();
-
-			std::string modifiedString = str;
-
-			if (removeType & SpaceRemoveType::FRONT)
-			{
-				while (!modifiedString.empty() && modifiedString[0] == ' ')
-				{
-					modifiedString.erase(0, 1);
-				}
-			}
-			if (removeType & SpaceRemoveType::MID)
-			{
-				for (size_t i = 0; i < modifiedString.size(); i++)
-				{
-					
-				}
-			}
-			if (removeType & SpaceRemoveType::END)
-			{
-				//   asd   asd    
-			}
-			if (removeType & SpaceRemoveType::ALL)
-			{
-				for (size_t i = 0; i < modifiedString.size(); i++)
-				{
-					if (modifiedString[i] == ' ')
-						modifiedString.erase(i, 1);
-				}
-			}
-
-			return std::string();
-		}
-
+		
+		template<typename... Args>
+		static std::string Format(const std::string& message, Args&&... args);
 
 		//Converts a type like int to string
 		template<typename T>
@@ -120,6 +87,7 @@ namespace Utils
 		inline static T StringToValue(const std::string& value);
 
 	private:
+
 		template<typename T>
 		inline static T ConvertStringToIntegral(const std::string& str);
 
@@ -128,9 +96,36 @@ namespace Utils
 
 		template<typename T>
 		inline static T ConvertToIntegral(const std::string& str);
+
+		template<typename T>
+		inline static void Parse(std::string& str, size_t& offset, T&& arg);
 	};
 }
+template<typename... Args>
+static std::string Utils::StringUtils::Format(const std::string& message, Args&&... args)
+{
+	std::string formattedString = message;
+	size_t offset = 0;
 
+	(Parse(formattedString, offset, std::forward<Args>(args)), ...);
+
+	return formattedString;
+}
+
+template<typename T>
+inline static void Utils::StringUtils::Parse(std::string& str, size_t& offset, T&& arg)
+{
+	size_t i = str.find("{}", offset);
+
+	if (i == std::string::npos)
+		return;
+
+	const std::string value = ValueToString(std::forward<T>(arg));
+	str.replace(i, 2, value);
+
+	offset += i + value.length();
+
+}
 template<typename T>
 std::string Utils::StringUtils::ValueToString(const T& value)
 {
@@ -143,13 +138,13 @@ std::string Utils::StringUtils::ValueToString(const T& value)
 	{
 		ss << std::setprecision(std::numeric_limits<T>::max_digits10) << value;
 	}
-	else if constexpr (std::is_integral<T>::value || std::is_same<T, std::string>::value)
+	else if constexpr (std::is_integral<T>::value || std::is_same<T, std::string>::value || std::is_convertible<T, const char*>::value)
 	{
 		ss << value;
 	}
 	else
 	{
-		throw InvalidType("Type: " + std::string(typeid(T).name()) + " is invalid!");
+		throw InvalidArgument(Format("Type: [{}] is invalid!", typeid(T).name()));
 	}
 	return ss.str();
 }
@@ -169,7 +164,7 @@ inline T Utils::StringUtils::StringToValue(const std::string& str)
 			return false;
 
 		else
-			throw std::invalid_argument("Couldn't convert string to bool!" + lower);
+			throw InvalidArgument(Format("Couldn't convert string to bool! Value was: {}", lower));
 	}
 	else if constexpr (std::is_integral<T>::value)
 	{
@@ -185,7 +180,7 @@ inline T Utils::StringUtils::StringToValue(const std::string& str)
 	}
 	else
 	{
-		std::cerr << "Type: " << typeid(T).name() + " is not supported!\n";
+		throw InvalidArgument(Format("Type: [{}] is invalid!", typeid(T).name()));
 	}
 
 	return value;
@@ -209,7 +204,7 @@ inline T Utils::StringUtils::ConvertToFloatingPoint(const std::string& str)
 		value = std::stold(str, &i);
 	}
 	if (i != str.size())
-		throw std::invalid_argument("Couldn't convert string to: " + std::string(typeid(T).name()));
+		throw InvalidArgument(Format("Couldn't convert string to: {}", typeid(T).name()));
 
 	return value;
 }
@@ -223,12 +218,12 @@ inline T Utils::StringUtils::ConvertToIntegral(const std::string& str)
 	if constexpr (std::is_unsigned<T>::value)
 	{
 		if (IsNegative(str))
-			throw std::out_of_range("Value is out of range!");
+			throw OutOfRange("Value is out of range!");
 
 		unsigned long long checkValue = std::stoull(str, &i);
 
 		if (checkValue > std::numeric_limits<T>::max())
-			throw std::out_of_range("Value is out of range!");
+			throw OutOfRange("Value is out of range!");
 
 		value = static_cast<T>(checkValue);
 	}
@@ -237,13 +232,13 @@ inline T Utils::StringUtils::ConvertToIntegral(const std::string& str)
 		long long checkValue = std::stoll(str, &i);
 
 		if (checkValue < std::numeric_limits<T>::min() || checkValue > std::numeric_limits<T>::max())
-			throw std::out_of_range("Value is out of range!");
+			throw OutOfRange("Value is out of range!");
 
-		value =  static_cast<T>(checkValue);
+		value = static_cast<T>(checkValue);
 	}
 
 	if (i != str.size())
-		throw std::invalid_argument("Couldn't convert string to: " + std::string(typeid(T).name()));
+		throw InvalidArgument(Format("Couldn't convert string to: {}", typeid(T).name()));
 
 	return value;
 }
